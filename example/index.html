@@ -41,30 +41,34 @@
     log(`Stored ${(buf.byteLength / 1e6).toFixed(1)} MB.`);
   }
 
-  document.getElementById('go').onclick = async () => {
+  const worker = new Worker('./valhalla.worker.bundle.js'); // classic worker (uses importScripts)
+  const goButton = document.getElementById('go');
+
+  worker.onmessage = (e) => {
+    const r = e.data;
+    if (r.progress) { log(r.progress); return; }
+    goButton.disabled = false;
+    if (r.success) {
+      log(`\n✅ ${r.summary.distance.toFixed(2)} mi, ${Math.round(r.summary.time / 60)} min`);
+      log(`Maneuvers: ${r.instructions.length}`);
+      log(`Shape points: ${r.geometry?.coordinates.length ?? 0}`);
+    } else if (r.error) {
+      log(`\n❌ ${r.error}`);
+    }
+  };
+
+  goButton.onclick = async () => {
     out.textContent = 'Routing…';
+    goButton.disabled = true;
     try {
       const region = document.getElementById('region').value.trim();
       const start = document.getElementById('start').value.split(',').map(Number);
       const end = document.getElementById('end').value.split(',').map(Number);
       await ensureTileInOpfs(region);
-
-      const worker = new Worker('./valhalla.worker.bundle.js'); // classic worker (uses importScripts)
-      worker.onmessage = (e) => {
-        const r = e.data;
-        if (r.progress) { log(r.progress); return; }
-        if (r.success) {
-          log(`\n✅ ${r.summary.distance.toFixed(2)} mi, ${Math.round(r.summary.time / 60)} min`);
-          log(`Maneuvers: ${r.instructions.length}`);
-          log(`Shape points: ${r.geometry?.coordinates.length ?? 0}`);
-          worker.terminate();
-        } else if (r.error) {
-          log(`\n❌ ${r.error}`); worker.terminate();
-        }
-      };
       worker.postMessage({ start, end, regions: [region] });
     } catch (err) {
       log(`\n❌ ${err.message || err}`);
+      goButton.disabled = false;
     }
   };
 </script>

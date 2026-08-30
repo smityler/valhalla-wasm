@@ -5,7 +5,7 @@ echo "Starting Valhalla WASM Compilation Pipeline..."
 
 # Pinned upstream references (see versions.lock). Override via environment, e.g.
 #   VALHALLA_REF=<sha-or-tag> VCPKG_REF=<sha> ./compile_wasm.sh
-VALHALLA_REF="${VALHALLA_REF:-f7764b337de93530374ac90978f638734139d93b}"
+VALHALLA_REF="${VALHALLA_REF:-a60c7cbfc83e073f50887cd27e0109d02e6b64e5}"
 VCPKG_REF="${VCPKG_REF:-89dd0f4d241136b843fb55813b2f0fa6448c204d}"
 
 # 1. Fetch Valhalla source at the pinned ref

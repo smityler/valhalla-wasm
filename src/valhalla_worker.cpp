@@ -21,7 +21,7 @@ public:
             std::stringstream ss(config_json);
             boost::property_tree::read_json(ss, pt);
             
-            actor = std::make_shared<valhalla::tyr::actor_t>(pt);
+            actor = std::make_shared<valhalla::tyr::actor_t>(pt, /*auto_cleanup=*/true);
             valhalla::midgard::logging::Configure({{"type", "std_out"}, {"color", "true"}});
             std::cout << "[Valhalla WASM] Engine initialized successfully!" << std::endl;
         } catch (const std::exception& e) {

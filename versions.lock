@@ -2,7 +2,7 @@
 # (valhalla.js / valhalla.wasm) are the output of these exact references.
 # compile_wasm.sh reads VALHALLA_REF and VCPKG_REF; the Dockerfile reads EMSDK_VERSION.
 
-VALHALLA_REF=f7764b337de93530374ac90978f638734139d93b
+VALHALLA_REF=a60c7cbfc83e073f50887cd27e0109d02e6b64e5
 VCPKG_REF=89dd0f4d241136b843fb55813b2f0fa6448c204d
 
 # Emscripten SDK, pinned to a concrete release. emsdk versions are immutable, so

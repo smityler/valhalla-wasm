@@ -95,7 +95,7 @@ function mountTileSource(FS: any, source: TileSource): number {
     return count;
 }
 
-function getValhallaConfig() {
+export function getValhallaConfig() {
     return {
         mjolnir: {
             tile_dir: '/valhalla_tiles',
