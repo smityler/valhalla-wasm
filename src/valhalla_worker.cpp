@@ -1,13 +1,39 @@
 #include <emscripten/bind.h>
 #include <valhalla/tyr/actor.h>
 #include <valhalla/midgard/logging.h>
+#include <valhalla/exceptions.h>
 #include <iostream>
 #include <string>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <sstream>
+#include <cstdio>
 
 using namespace emscripten;
+
+// Escape a message for a JSON string, so a quote or newline in it cannot break the reply.
+static std::string json_escape(const std::string& in) {
+    std::string out;
+    out.reserve(in.size());
+    for (unsigned char c : in) {
+        switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (c < 0x20) {
+                    char buf[8];
+                    snprintf(buf, sizeof buf, "\\u%04x", c);
+                    out += buf;
+                } else {
+                    out += static_cast<char>(c);
+                }
+        }
+    }
+    return out;
+}
 
 class ValhallaRouter {
 private:
@@ -34,8 +60,15 @@ public:
         if (!actor) return "{\"error\":\"Engine not initialized\"}";
         try {
             return actor->route(request_json);
+        } catch (const valhalla::valhalla_exception_t& e) {
+            // Same shape as Valhalla's HTTP service: the numeric code survives, so a caller can
+            // tell "no road near this point" (171) from any other failure.
+            return std::string("{\"error_code\":") + std::to_string(e.code) +
+                   ",\"error\":\"" + json_escape(e.message) +
+                   "\",\"status_code\":" + std::to_string(e.http_code) +
+                   ",\"status\":\"" + json_escape(e.http_message) + "\"}";
         } catch (const std::exception& e) {
-            return std::string("{\"error\":\"") + e.what() + "\"}";
+            return std::string("{\"error\":\"") + json_escape(e.what()) + "\"}";
         }
     }
     
