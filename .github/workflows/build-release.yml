@@ -1,0 +1,61 @@
+# Builds valhalla.js + valhalla.wasm from source and publishes them as a GitHub Release.
+# Run by hand only (Actions tab → "Build and release" → Run workflow). It never runs on push.
+name: Build and release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create (for example v0.1.0-sto.1-valhalla-3.8.3)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Free runner disk
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/share/powershell
+          sudo docker image prune --all --force
+          df -h /
+
+      - uses: actions/checkout@v4
+
+      - name: Build (Docker + Emscripten + vcpkg + Valhalla)
+        run: |
+          ./build.sh
+          df -h /
+
+      - name: Hashes
+        run: |
+          sudo chown "$(id -u):$(id -g)" valhalla.js valhalla.wasm
+          ls -l valhalla.js valhalla.wasm
+          sha256sum valhalla.js valhalla.wasm | tee SHA256SUMS
+          grep -E '^(VALHALLA_REF|VCPKG_REF|EMSDK_VERSION)=' versions.lock | tee -a BUILD-INFO
+          echo "COMMIT=${GITHUB_SHA}" | tee -a BUILD-INFO
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          {
+            echo "Built from source by this workflow at commit ${GITHUB_SHA}."
+            echo
+            echo "SHA-256:"
+            echo '```'
+            cat SHA256SUMS
+            echo '```'
+            echo "Pinned refs:"
+            echo '```'
+            cat BUILD-INFO
+            echo '```'
+          } > notes.md
+          gh release create "$TAG" valhalla.js valhalla.wasm SHA256SUMS BUILD-INFO \
+            --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md
